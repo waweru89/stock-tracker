@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BizzTracker Dashboard</title>
+  <title>BizzTracker</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf"></script>
   <style>
@@ -13,145 +14,229 @@
       color: #f0f0f0;
     }
     .low-stock { color: red; font-weight: bold; }
+    .container-auth { max-width: 400px; margin-top: 60px; }
   </style>
 </head>
 <body class="container py-4">
-  <div class="d-flex justify-content-between align-items-center">
-    <h1>BizzTracker Dashboard</h1>
-    <button class="btn btn-secondary" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+
+  <!-- Auth Section -->
+  <div id="auth-section" class="container-auth">
+    <h2 class="text-center mb-4">BizzTracker Login</h2>
+
+    <form id="login-form">
+      <div class="mb-3">
+        <input type="email" class="form-control" id="login-email" placeholder="Email" required />
+      </div>
+      <div class="mb-3">
+        <input type="password" class="form-control" id="login-password" placeholder="Password" required />
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Login</button>
+    </form>
+
+    <p class="text-center mt-3">
+      Don't have an account? <a href="#" onclick="toggleForm('signup')">Sign up</a>
+    </p>
+
+    <form id="signup-form" class="d-none">
+      <div class="mb-3">
+        <input type="email" class="form-control" id="signup-email" placeholder="Email" required />
+      </div>
+      <div class="mb-3">
+        <input type="password" class="form-control" id="signup-password" placeholder="Password" required />
+      </div>
+      <button type="submit" class="btn btn-success w-100">Sign Up</button>
+      <p class="text-center mt-3">
+        Already have an account? <a href="#" onclick="toggleForm('login')">Login</a>
+      </p>
+    </form>
   </div>
 
-  <!-- Product Form -->
-  <form id="product-form" class="my-4">
-    <h4>Add / Edit Product</h4>
-    <input type="hidden" id="product-id" />
-    <div class="row g-2">
-      <div class="col-md-3">
-        <input class="form-control" type="text" id="product-name" placeholder="Product Name" required />
-      </div>
-      <div class="col-md-2">
-        <input class="form-control" type="number" id="cost-price" placeholder="Cost Price" required />
-      </div>
-      <div class="col-md-2">
-        <input class="form-control" type="number" id="profit-margin" placeholder="Profit % (e.g. 40)" value="40" />
-      </div>
-      <div class="col-md-2">
-        <input class="form-control" type="number" id="stock-quantity" placeholder="Stock Qty" required />
-      </div>
-      <div class="col-md-3">
-        <button type="submit" class="btn btn-primary w-100">Save Product</button>
+  <!-- Dashboard Section -->
+  <div id="dashboard" style="display:none;">
+    <div class="d-flex justify-content-between align-items-center">
+      <h1>BizzTracker Dashboard</h1>
+      <div>
+        <button class="btn btn-secondary me-2" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+        <button class="btn btn-outline-danger" onclick="logout()">Logout</button>
       </div>
     </div>
-  </form>
 
-  <!-- Sale Form -->
-  <form id="sale-form" class="my-4">
-    <h4>Record Sale</h4>
-    <div class="row g-2">
-      <div class="col-md-4">
-        <select id="sale-product" class="form-select" required></select>
+    <!-- Product Form -->
+    <form id="product-form" class="my-4">
+      <h4>Add / Edit Product</h4>
+      <input type="hidden" id="product-id" />
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input class="form-control" type="text" id="product-name" placeholder="Product Name" required />
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" type="number" id="cost-price" placeholder="Cost Price" required />
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" type="number" id="profit-margin" placeholder="Profit % (e.g. 40)" value="40" />
+        </div>
+        <div class="col-md-2">
+          <input class="form-control" type="number" id="stock-quantity" placeholder="Stock Qty" required />
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-primary w-100">Save Product</button>
+        </div>
       </div>
-      <div class="col-md-2">
-        <input type="number" class="form-control" id="sale-quantity" placeholder="Quantity" required />
+    </form>
+
+    <!-- Sale Form -->
+    <form id="sale-form" class="my-4">
+      <h4>Record Sale</h4>
+      <div class="row g-2">
+        <div class="col-md-4">
+          <select id="sale-product" class="form-select" required></select>
+        </div>
+        <div class="col-md-2">
+          <input type="number" class="form-control" id="sale-quantity" placeholder="Quantity" required />
+        </div>
+        <div class="col-md-3">
+          <input type="date" class="form-control" id="sale-date" />
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-success w-100">Record Sale</button>
+        </div>
       </div>
-      <div class="col-md-3">
-        <input type="date" class="form-control" id="sale-date" />
+    </form>
+
+    <!-- Expense Form -->
+    <form id="expense-form" class="my-4">
+      <h4>Record Expense</h4>
+      <div class="row g-2">
+        <div class="col-md-3">
+          <input class="form-control" type="text" id="expense-category" placeholder="Category" required />
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" type="number" id="expense-amount" placeholder="Amount" required />
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" type="date" id="expense-date" />
+        </div>
+        <div class="col-md-3">
+          <button type="submit" class="btn btn-warning w-100">Save Expense</button>
+        </div>
       </div>
-      <div class="col-md-3">
-        <button type="submit" class="btn btn-success w-100">Record Sale</button>
-      </div>
+    </form>
+
+    <!-- Inventory -->
+    <div class="my-4">
+      <h4>Inventory</h4>
+      <input type="text" id="search-product" class="form-control mb-2" placeholder="Search Product..." />
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Cost</th>
+            <th>Margin %</th>
+            <th>Sell Price</th>
+            <th>Stock</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inventory-list"></tbody>
+      </table>
     </div>
-  </form>
 
-  <!-- Expense Form -->
-  <form id="expense-form" class="my-4">
-    <h4>Record Expense</h4>
-    <div class="row g-2">
-      <div class="col-md-3">
-        <input class="form-control" type="text" id="expense-category" placeholder="Category" required />
-      </div>
-      <div class="col-md-3">
-        <input class="form-control" type="number" id="expense-amount" placeholder="Amount" required />
-      </div>
-      <div class="col-md-3">
-        <input class="form-control" type="date" id="expense-date" />
-      </div>
-      <div class="col-md-3">
-        <button type="submit" class="btn btn-warning w-100">Save Expense</button>
-      </div>
+    <!-- Sales -->
+    <div class="my-4">
+      <h4>Sales</h4>
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Date</th>
+            <th>Profit</th>
+          </tr>
+        </thead>
+        <tbody id="sales-list"></tbody>
+      </table>
     </div>
-  </form>
 
-  <!-- Data Display -->
-  <div class="my-4">
-    <h4>Inventory</h4>
-    <input type="text" id="search-product" class="form-control mb-2" placeholder="Search Product..." />
-    <table class="table table-bordered">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Cost</th>
-          <th>Margin %</th>
-          <th>Sell Price</th>
-          <th>Stock</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="inventory-list"></tbody>
-    </table>
+    <!-- Expenses -->
+    <div class="my-4">
+      <h4>Expenses</h4>
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="expense-list"></tbody>
+      </table>
+    </div>
+
+    <!-- Summary -->
+    <div class="my-4">
+      <h4>Monthly Summary</h4>
+      <ul class="list-group">
+        <li class="list-group-item">Gross Sales: <span id="gross-sales"></span></li>
+        <li class="list-group-item">Total Expenses: <span id="total-expenses"></span></li>
+        <li class="list-group-item">Net Profit: <span id="net-profit"></span></li>
+      </ul>
+      <button class="btn btn-info mt-3" onclick="exportPricesToPDF()">Download Prices PDF</button>
+    </div>
+
+    <!-- Chart -->
+    <div class="my-4">
+      <h4>Monthly Sales Chart</h4>
+      <canvas id="salesChart" height="100"></canvas>
+    </div>
   </div>
 
-  <div class="my-4">
-    <h4>Sales</h4>
-    <table class="table table-bordered">
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Qty</th>
-          <th>Date</th>
-          <th>Profit</th>
-        </tr>
-      </thead>
-      <tbody id="sales-list"></tbody>
-    </table>
-  </div>
-
-  <div class="my-4">
-    <h4>Expenses</h4>
-    <table class="table table-bordered">
-      <thead>
-        <tr>
-          <th>Category</th>
-          <th>Amount</th>
-          <th>Date</th>
-        </tr>
-      </thead>
-      <tbody id="expense-list"></tbody>
-    </table>
-  </div>
-
-  <!-- Summary -->
-  <div class="my-4">
-    <h4>Monthly Summary</h4>
-    <ul class="list-group">
-      <li class="list-group-item">Gross Sales: <span id="gross-sales"></span></li>
-      <li class="list-group-item">Total Expenses: <span id="total-expenses"></span></li>
-      <li class="list-group-item">Net Profit: <span id="net-profit"></span></li>
-    </ul>
-    <button class="btn btn-info mt-3" onclick="exportPricesToPDF()">Download Prices PDF</button>
-  </div>
-
-  <div class="my-4">
-    <h4>Monthly Sales Chart</h4>
-    <canvas id="salesChart" height="100"></canvas>
-  </div>
-
-  <script src="supabase.js"></script>
-  <script src="dashboard.js"></script>
   <script>
+    const supabase = supabase.createClient("http;//qkdevvlemcuwynbkspsk.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrZGV2dmxlbWN1d3luYmtzcHNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM1MTg1MTksImV4cCI6MjA2OTA5NDUxOX0.znePO0GumUsZkkKbaLcwuVO9lHq90YtMl0ZuL0hanVw");
+
+    function toggleForm(form) {
+      document.getElementById('login-form').classList.toggle('d-none', form !== 'login');
+      document.getElementById('signup-form').classList.toggle('d-none', form !== 'signup');
+    }
+
+    async function checkUser() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        document.getElementById("auth-section").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        loadDashboard(); // Your dashboard logic here
+      } else {
+        document.getElementById("auth-section").style.display = "block";
+        document.getElementById("dashboard").style.display = "none";
+      }
+    }
+
+    async function logout() {
+      await supabase.auth.signOut();
+      location.reload();
+    }
+
+    document.getElementById("signup-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("signup-email").value;
+      const password = document.getElementById("signup-password").value;
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) alert(error.message);
+      else alert("Check your email to confirm signup.");
+    });
+
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("login-email").value;
+      const password = document.getElementById("login-password").value;
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) alert(error.message);
+      else checkUser();
+    });
+
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
     }
+
     function exportPricesToPDF() {
       const doc = new jsPDF();
       doc.text("Selling Prices", 10, 10);
@@ -163,6 +248,9 @@
       });
       doc.save("SellingPrices.pdf");
     }
+
+    // Run on load
+    checkUser();
   </script>
 </body>
 </html>
