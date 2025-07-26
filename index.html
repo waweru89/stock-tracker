@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizzTracker Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf"></script>
+  <style>
+    body.dark-mode {
+      background-color: #121212;
+      color: #f0f0f0;
+    }
+    .low-stock { color: red; font-weight: bold; }
+  </style>
+</head>
+<body class="container py-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <h1>BizzTracker Dashboard</h1>
+    <button class="btn btn-secondary" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+  </div>
+
+  <!-- Product Form -->
+  <form id="product-form" class="my-4">
+    <h4>Add / Edit Product</h4>
+    <input type="hidden" id="product-id" />
+    <div class="row g-2">
+      <div class="col-md-3">
+        <input class="form-control" type="text" id="product-name" placeholder="Product Name" required />
+      </div>
+      <div class="col-md-2">
+        <input class="form-control" type="number" id="cost-price" placeholder="Cost Price" required />
+      </div>
+      <div class="col-md-2">
+        <input class="form-control" type="number" id="profit-margin" placeholder="Profit % (e.g. 40)" value="40" />
+      </div>
+      <div class="col-md-2">
+        <input class="form-control" type="number" id="stock-quantity" placeholder="Stock Qty" required />
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">Save Product</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Sale Form -->
+  <form id="sale-form" class="my-4">
+    <h4>Record Sale</h4>
+    <div class="row g-2">
+      <div class="col-md-4">
+        <select id="sale-product" class="form-select" required></select>
+      </div>
+      <div class="col-md-2">
+        <input type="number" class="form-control" id="sale-quantity" placeholder="Quantity" required />
+      </div>
+      <div class="col-md-3">
+        <input type="date" class="form-control" id="sale-date" />
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-success w-100">Record Sale</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Expense Form -->
+  <form id="expense-form" class="my-4">
+    <h4>Record Expense</h4>
+    <div class="row g-2">
+      <div class="col-md-3">
+        <input class="form-control" type="text" id="expense-category" placeholder="Category" required />
+      </div>
+      <div class="col-md-3">
+        <input class="form-control" type="number" id="expense-amount" placeholder="Amount" required />
+      </div>
+      <div class="col-md-3">
+        <input class="form-control" type="date" id="expense-date" />
+      </div>
+      <div class="col-md-3">
+        <button type="submit" class="btn btn-warning w-100">Save Expense</button>
+      </div>
+    </div>
+  </form>
+
+  <!-- Data Display -->
+  <div class="my-4">
+    <h4>Inventory</h4>
+    <input type="text" id="search-product" class="form-control mb-2" placeholder="Search Product..." />
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Cost</th>
+          <th>Margin %</th>
+          <th>Sell Price</th>
+          <th>Stock</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="inventory-list"></tbody>
+    </table>
+  </div>
+
+  <div class="my-4">
+    <h4>Sales</h4>
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Qty</th>
+          <th>Date</th>
+          <th>Profit</th>
+        </tr>
+      </thead>
+      <tbody id="sales-list"></tbody>
+    </table>
+  </div>
+
+  <div class="my-4">
+    <h4>Expenses</h4>
+    <table class="table table-bordered">
+      <thead>
+        <tr>
+          <th>Category</th>
+          <th>Amount</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody id="expense-list"></tbody>
+    </table>
+  </div>
+
+  <!-- Summary -->
+  <div class="my-4">
+    <h4>Monthly Summary</h4>
+    <ul class="list-group">
+      <li class="list-group-item">Gross Sales: <span id="gross-sales"></span></li>
+      <li class="list-group-item">Total Expenses: <span id="total-expenses"></span></li>
+      <li class="list-group-item">Net Profit: <span id="net-profit"></span></li>
+    </ul>
+    <button class="btn btn-info mt-3" onclick="exportPricesToPDF()">Download Prices PDF</button>
+  </div>
+
+  <div class="my-4">
+    <h4>Monthly Sales Chart</h4>
+    <canvas id="salesChart" height="100"></canvas>
+  </div>
+
+  <script src="supabase.js"></script>
+  <script src="dashboard.js"></script>
+  <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+    function exportPricesToPDF() {
+      const doc = new jsPDF();
+      doc.text("Selling Prices", 10, 10);
+      const rows = Array.from(document.querySelectorAll("#inventory-list tr"));
+      rows.forEach((row, i) => {
+        const cells = row.querySelectorAll("td");
+        const line = Array.from(cells).map(c => c.innerText).join(" | ");
+        doc.text(line, 10, 20 + (i * 10));
+      });
+      doc.save("SellingPrices.pdf");
+    }
+  </script>
+</body>
+</html>
